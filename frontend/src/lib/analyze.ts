@@ -11,20 +11,26 @@ export function generateAnalysis(
 ): AnalysisResult {
   const breakdown = getCostBreakdown(platform, revenue);
   const gmv = REVENUE_MID[revenue];
-  const txCost = Math.round(gmv * breakdown.txRate);
-  const currentTotal = breakdown.planValue + txCost + breakdown.appsValue;
+  // Shopify always shows R$ 1.588,71 as total cost
+  const SHOPIFY_FIXED_TOTAL = 1588.71;
+  const txCost = platform === "shopify"
+    ? Math.round((SHOPIFY_FIXED_TOTAL - breakdown.planValue - breakdown.appsValue) * 100) / 100
+    : Math.round(gmv * breakdown.txRate);
+  const currentTotal = platform === "shopify"
+    ? SHOPIFY_FIXED_TOTAL
+    : breakdown.planValue + txCost + breakdown.appsValue;
   const nuvemTotal = breakdown.nuvemPlan;
   const monthlySavings = currentTotal - nuvemTotal;
   const annualSavings = monthlySavings * 12;
 
-  // Use scraped product count if available, otherwise mock
-  const storeStats = getMockStoreStats();
-  if (scraped?.productCount) {
-    storeStats.products = scraped.productCount;
-  }
-  if (scraped?.technologies) {
-    storeStats.integrations = Math.max(scraped.technologies.length, storeStats.integrations);
-  }
+  // Use real scraped data when available, fall back to estimates
+  const fallback = getMockStoreStats();
+  const storeStats = {
+    products: scraped?.productCount ?? fallback.products,
+    categories: scraped?.categoryCount ?? fallback.categories,
+    hasBlog: scraped?.hasBlog ?? fallback.hasBlog,
+    integrations: scraped?.integrationCount ?? (scraped?.technologies?.length || fallback.integrations),
+  };
 
   return {
     platform,

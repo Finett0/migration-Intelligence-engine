@@ -3,21 +3,51 @@
 import { useState, type FormEvent } from "react";
 import { motion } from "framer-motion";
 import { formatBRL } from "@/lib/analyze";
+import type { AnalysisResult } from "@/types/report";
 
 interface CTASectionProps {
-  annualSavings: number;
+  result: AnalysisResult;
 }
 
-export function CTASection({ annualSavings }: CTASectionProps) {
+export function CTASection({ result }: CTASectionProps) {
+  const annualSavings = result.costs.annualSavings;
   const [showForm, setShowForm] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!email.trim() || !phone.trim()) return;
-    setSubmitted(true);
+    setSending(true);
+    setError("");
+    try {
+      const res = await fetch("/api/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim(),
+          phone: phone.trim(),
+          url: result.url,
+          platform: result.platform,
+          annualSavings: result.costs.annualSavings,
+          monthlySavings: result.costs.monthlySavings,
+          currentCost: result.costs.current.total,
+          nuvemCost: result.costs.nuvemshop.total,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Erro ao enviar");
+      }
+      setSubmitted(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao enviar email");
+    } finally {
+      setSending(false);
+    }
   }
 
   return (
@@ -47,7 +77,13 @@ export function CTASection({ annualSavings }: CTASectionProps) {
             >
               Agendar demonstração
             </button>
-            <button className="w-full cursor-pointer rounded-md border-2 border-white/40 bg-transparent px-7 py-3.5 text-[15px] font-bold text-white transition-all hover:border-white hover:bg-white/[.08] sm:w-auto sm:px-9 sm:py-4 sm:text-[17px]">
+            <button
+              onClick={async () => {
+                const { generateReportPDF } = await import("@/lib/generatePDF");
+                generateReportPDF(result);
+              }}
+              className="w-full cursor-pointer rounded-md border-2 border-white/40 bg-transparent px-7 py-3.5 text-[15px] font-bold text-white transition-all hover:border-white hover:bg-white/[.08] sm:w-auto sm:px-9 sm:py-4 sm:text-[17px]"
+            >
               Baixar relatório em PDF
             </button>
           </div>
@@ -84,11 +120,15 @@ export function CTASection({ annualSavings }: CTASectionProps) {
               />
               <button
                 type="submit"
-                className="cursor-pointer rounded-md bg-success px-7 py-3 text-[14px] font-bold whitespace-nowrap text-white transition-all hover:-translate-y-px hover:bg-[#009244] sm:py-3.5 sm:text-[15px]"
+                disabled={sending}
+                className="cursor-pointer rounded-md bg-success px-7 py-3 text-[14px] font-bold whitespace-nowrap text-white transition-all hover:-translate-y-px hover:bg-[#009244] disabled:cursor-not-allowed disabled:opacity-60 sm:py-3.5 sm:text-[15px]"
               >
-                Enviar
+                {sending ? "Enviando..." : "Enviar"}
               </button>
             </form>
+            {error && (
+              <p className="mt-3 text-[13px] font-medium text-red-300">{error}</p>
+            )}
           </motion.div>
         ) : (
           <motion.div
@@ -96,8 +136,8 @@ export function CTASection({ annualSavings }: CTASectionProps) {
             animate={{ opacity: 1, scale: 1 }}
             className="mx-auto max-w-[520px] rounded-lg border border-success/30 bg-success/15 px-5 py-4 text-[14px] font-medium text-white sm:px-6 sm:py-5 sm:text-[15px]"
           >
-            Pronto! Nossa equipe entrará em contato em breve pelo WhatsApp.
-            Fique de olho!
+            Pronto! Enviamos seu relatório para {email}. Nossa equipe entrará
+            em contato em breve pelo WhatsApp. Fique de olho!
           </motion.div>
         )}
       </div>

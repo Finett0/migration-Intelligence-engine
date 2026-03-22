@@ -44,6 +44,9 @@ export interface ScrapedData {
   description: string;
   detectedPlatform: string | null;
   productCount: number | null;
+  categoryCount: number | null;
+  hasBlog: boolean | null;
+  integrationCount: number | null;
   hasSSL: boolean;
   technologies: string[];
 }

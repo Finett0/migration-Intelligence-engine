@@ -98,7 +98,7 @@ export default function Home() {
               <hr className="mx-4 max-w-[1000px] border-border sm:mx-auto" />
               <QuickWins result={result} />
             </div>
-            <CTASection annualSavings={result.costs.annualSavings} />
+            <CTASection result={result} />
           </motion.div>
         )}
       </AnimatePresence>
