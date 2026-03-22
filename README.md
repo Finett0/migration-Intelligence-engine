@@ -4,6 +4,8 @@ Ferramenta de IA para atração e conversão de Merchant Sellers — merchants q
 
 **Time:** Nurturing Acquisition · Growth Marketing — Nuvemshop
 
+**Live:** [migration-intelligence-engine.vercel.app](https://migration-intelligence-engine.vercel.app)
+
 ---
 
 ## Problema
@@ -28,171 +30,250 @@ Merchant interessado → Insere URL da loja → Relatório instantâneo → Agen
 
 ---
 
-## Estrutura do Projeto
+## URLs
 
-```
-migration-Intelligence-engine/
-├── frontend/                    # Aplicação Next.js com API routes
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── api/analyze/route.ts  # API: scraping + Claude LLM
-│   │   │   ├── layout.tsx       # Root layout com metadata e fonte
-│   │   │   ├── page.tsx         # Página principal e orquestração de estado
-│   │   │   └── globals.css      # Tokens de tema e estilos globais
-│   │   ├── components/
-│   │   │   └── sections/
-│   │   │       ├── Navbar.tsx
-│   │   │       ├── HeroSection.tsx
-│   │   │       ├── QualificationForm.tsx
-│   │   │       ├── LoadingAnalysis.tsx
-│   │   │       ├── EconomyReport.tsx
-│   │   │       ├── MigrationPlan.tsx
-│   │   │       ├── QuickWins.tsx
-│   │   │       ├── CTASection.tsx
-│   │   │       └── Footer.tsx
-│   │   ├── lib/
-│   │   │   ├── data.ts          # Dados de negócio e constantes
-│   │   │   └── analyze.ts       # Lógica de cálculo e geração de análise
-│   │   └── types/
-│   │       └── report.ts        # Definições de tipos TypeScript
-│   ├── public/                  # Assets estáticos (logos Nuvemshop)
-│   ├── package.json
-│   ├── next.config.ts
-│   ├── postcss.config.mjs
-│   └── tsconfig.json
-├── competitive-analysis/        # Análises comparativas por concorrente
-│   ├── nuvemshop-x-shopify.md   # (placeholder)
-│   ├── nuvemshop-x-tray.md
-│   ├── nuvemshop-x-vtex.md
-│   ├── nuvemshop-x-woocommerce.md
-│   ├── nuvemshop-x-wix-.md     # (placeholder)
-│   └── nuvemshop-x-lojaintegrada.md
-├── assets/                      # Logos e imagens de marca
-├── frontend-spec.md             # Especificação de design (tokens, componentes, responsividade)
-└── migration_intelligence_engine.md  # Plano estratégico completo
-```
+| URL | Descrição | Acesso |
+|-----|-----------|--------|
+| [migration-intelligence-engine.vercel.app](https://migration-intelligence-engine.vercel.app) | App principal | Público |
+| [migration-intelligence-engine.vercel.app/admin](https://migration-intelligence-engine.vercel.app/admin) | Dashboard admin | Senha protegido |
+| [migration-intelligence-engine.vercel.app/admin/leads](https://migration-intelligence-engine.vercel.app/admin/leads) | Lista de leads | Senha protegido |
 
 ---
 
-## Frontend
+## Stack Tecnológico
 
-### Stack
+### Frontend
 
 | Tecnologia | Versão | Função |
-|------------|--------|--------|
-| Next.js | 16.2.1 | Framework React com API routes |
+|-----------|--------|--------|
+| Next.js | 16.2.1 | Framework React (App Router) |
 | React | 19.2.4 | UI library |
+| TypeScript | 5.9.3 | Tipagem estática |
 | Tailwind CSS | 4.2.2 | Estilização utility-first |
 | Framer Motion | 12.38.0 | Animações e transições |
-| TypeScript | 5.9.3 | Tipagem estática |
-| Cheerio | - | Scraping de lojas (server-side) |
-| @anthropic-ai/sdk | - | Integração com Claude (LLM) |
+| jsPDF | 4.2.1 | Geração de PDF no client-side |
 
-### Fluxo do Usuário
+### Backend (API Routes)
+
+| Rota | Método | Função |
+|------|--------|--------|
+| `/api/analyze` | POST | Scraping da loja + diagnóstico IA + criação de lead |
+| `/api/send` | POST | Envio de email via Resend + tracking pixel |
+| `/api/admin/auth` | POST/DELETE | Login/logout do admin (JWT) |
+| `/api/events/pdf-download` | POST | Tracking de download do PDF |
+| `/api/events/email-open` | GET | Pixel 1x1 PNG para tracking de abertura de email |
+
+### Modelo de IA
+
+| Item | Detalhe |
+|------|---------|
+| Provider | Anthropic |
+| Modelo | `claude-sonnet-4-20250514` |
+| SDK | `@anthropic-ai/sdk` v0.80.0 |
+| Uso | Diagnóstico personalizado de migração em português — complexidade, dicas e análise contextualizada |
+
+### Banco de Dados
+
+| Item | Detalhe |
+|------|---------|
+| Banco | PostgreSQL (Prisma Postgres) |
+| ORM | Prisma 7.5.0 |
+| Driver | `@prisma/adapter-pg` |
+| Modelos | `Lead` (url, email, phone, platform, revenue, pains, score) + `Event` (type, metadata) |
+
+### Integrações Externas
+
+| Serviço | Função |
+|---------|--------|
+| **Anthropic Claude** | Análise inteligente das lojas via LLM |
+| **Resend** | Envio de emails transacionais (relatório ROI) |
+| **Cheerio** | Web scraping e parse HTML das lojas |
+| **Vercel** | Hosting + Serverless Functions |
+| **Prisma Postgres** | Database gerenciado |
+
+### Autenticação (Admin)
+
+| Item | Detalhe |
+|------|---------|
+| Método | Senha única + JWT |
+| Lib | `jose` v6.2.2 (HS256) |
+| Expiração | 24 horas |
+| Cookie | `admin_session` (HTTP-only, secure) |
+
+---
+
+## Fluxo do Usuário
 
 ```
 1. Hero → Merchant insere URL da loja
 2. Qualification Form → Seleciona plataforma, faturamento e dores
-3. Loading Analysis → Animação de progresso (4 etapas, ~3s)
+3. Loading Analysis → Scraping real + Claude AI (~3-5s)
 4. Relatório → Economia projetada + Plano de migração + Quick wins
-5. CTA → Agendar demonstração ou baixar PDF
+5. CTA → Baixar PDF ou enviar relatório por email
 ```
 
-### Design System
+---
 
-Baseado nos tokens da marca Nuvemshop e no Nimbus Design System:
+## Lead Scoring
 
-- **Cores:** Primary #171E43, Accent #0050C3, Success #00A650
-- **Fonte:** Plus Jakarta Sans (400–800)
-- **Espaçamento:** Sistema base-4 (4px increments)
-- **Breakpoints:** Mobile (<768px), Tablet (768–1024px), Desktop (>1024px)
+Cada interação do merchant gera pontos automaticamente:
 
-### API Route — Scraping + IA
+| Evento | Pontos |
+|--------|--------|
+| Análise da loja | +1 |
+| Download do PDF | +3 |
+| Email enviado | +5 |
+| Abertura do email | +2 |
 
-O frontend inclui uma API route (`/api/analyze`) que faz:
+**Score máximo: 11 pontos.** Leads com score alto = prospects mais engajados, prontos para abordagem comercial.
 
-1. **Scraping real** da URL do merchant com Cheerio:
-   - Detecta plataforma via signatures no HTML (Shopify, Tray, WooCommerce, etc.)
-   - Identifica tecnologias (Google Analytics, Meta Pixel, RD Station, etc.)
-   - Extrai título, descrição e dados estruturados
-2. **Diagnóstico por IA** via Claude (Anthropic API):
-   - Gera um parágrafo personalizado sobre a loja analisada
-   - Classifica complexidade de migração (baixa/média/alta)
-   - Produz dicas contextualizadas baseadas nas dores reportadas
+---
 
-Se a API key não estiver configurada, a ferramenta funciona com fallback inteligente (dados hardcoded + insights baseados em regras).
+## Admin Dashboard
 
-```bash
-# Configurar a API key
-cp .env.example .env.local
-# Editar .env.local com sua ANTHROPIC_API_KEY
+O dashboard em `/admin` oferece:
+
+- **KPIs em tempo real** — total de leads, análises, PDFs, emails enviados/abertos
+- **Funil de conversão** — análise → PDF → email → abertura
+- **Top leads por score** — priorização para o time comercial
+- **Atividade recente** — timeline de eventos
+- **Detalhe do lead** — timeline completa com score breakdown
+
+---
+
+## Plataformas Detectadas
+
+O scraping identifica automaticamente:
+
+| Plataforma | Detecção |
+|-----------|----------|
+| Shopify | `/products.json`, `/collections.json`, meta tags |
+| Tray | Signatures HTML específicas |
+| WooCommerce | `/wp-json/wc/store/v1/` endpoints |
+| Loja Integrada | Signatures HTML específicas |
+| VTEX | `/api/catalog_system/pub/` endpoints |
+| Nuvemshop | Signatures HTML específicas |
+
+Também detecta integrações: Google Analytics, Meta Pixel, RD Station, Hotjar, Zendesk, Mailchimp, HubSpot, e mais.
+
+---
+
+## Estrutura do Projeto
+
+```
+migration-Intelligence-engine/
+├── frontend/
+│   ├── prisma/
+│   │   └── schema.prisma          # Schema do banco (Lead + Event)
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── api/
+│   │   │   │   ├── analyze/route.ts       # Scraping + IA + lead tracking
+│   │   │   │   ├── send/route.ts          # Email via Resend + tracking pixel
+│   │   │   │   ├── admin/auth/route.ts    # Auth JWT
+│   │   │   │   └── events/
+│   │   │   │       ├── pdf-download/route.ts
+│   │   │   │       └── email-open/route.ts
+│   │   │   ├── (admin)/
+│   │   │   │   ├── layout.tsx             # Layout admin com sidebar
+│   │   │   │   └── admin/
+│   │   │   │       ├── page.tsx           # Dashboard principal
+│   │   │   │       ├── login/page.tsx     # Tela de login
+│   │   │   │       ├── leads/page.tsx     # Lista de leads
+│   │   │   │       └── leads/[id]/page.tsx # Detalhe do lead
+│   │   │   ├── layout.tsx
+│   │   │   ├── page.tsx                   # Página principal
+│   │   │   └── globals.css
+│   │   ├── components/sections/
+│   │   │   ├── Navbar.tsx
+│   │   │   ├── HeroSection.tsx
+│   │   │   ├── QualificationForm.tsx
+│   │   │   ├── LoadingAnalysis.tsx
+│   │   │   ├── EconomyReport.tsx
+│   │   │   ├── MigrationPlan.tsx
+│   │   │   ├── QuickWins.tsx
+│   │   │   ├── CTASection.tsx
+│   │   │   └── Footer.tsx
+│   │   ├── lib/
+│   │   │   ├── analyze.ts          # Lógica de cálculo e geração de análise
+│   │   │   ├── data.ts             # Dados de negócio e constantes
+│   │   │   ├── prisma.ts           # Singleton Prisma client
+│   │   │   ├── track.ts            # Lead upsert + event tracking
+│   │   │   ├── scoring.ts          # Constantes de pontuação
+│   │   │   ├── admin-auth.ts       # JWT helpers (jose)
+│   │   │   └── generatePDF.ts      # Geração de PDF (jsPDF)
+│   │   └── types/
+│   │       └── report.ts
+│   ├── public/                     # Assets estáticos (logos)
+│   ├── package.json
+│   └── prisma.config.ts
+├── competitive-analysis/           # Análises comparativas por concorrente
+├── assets/                         # Logos e imagens de marca
+├── frontend-spec.md                # Especificação de design
+└── migration_intelligence_engine.md # Plano estratégico completo
 ```
 
-### Lógica de Cálculo
+---
 
-O cálculo de economia roda client-side com dados enriquecidos pelo scraping:
+## Lógica de Cálculo
 
 ```
-Custo Atual = Plano + (Faturamento × Taxa Transação) + Apps
-Custo Nuvemshop = Plano Next fixo (R$349–1999/mês)
+Custo Atual = Plano + (Faturamento x Taxa Transação) + Apps
+Custo Nuvemshop = R$449/mês (plano fixo)
 Economia Mensal = Custo Atual - Custo Nuvemshop
-Economia Anual = Economia Mensal × 12
+Economia Anual = Economia Mensal x 12
 ```
 
-Dados de custo segmentados por plataforma de origem (5) e faixa de faturamento (5 tiers).
+Dados segmentados por plataforma de origem (6) e faixa de faturamento (5 tiers).
 
-### Comandos
+---
+
+## Análises Competitivas
+
+| Arquivo | Status | Destaques |
+|---------|--------|-----------|
+| **vs Shopify** | Completo | Nuvemshop elimina risco cambial (USD→BRL), Pix nativo, Nuvem Envio sem apps pagos |
+| **vs Tray** | Completo | Nuvemshop tem plano gratuito (Tray não), WhatsApp nativo via Nuvem Chat, 99.9% uptime |
+| **vs VTEX** | Completo | VTEX é enterprise (R$1.500+/mês + devs), Nuvemshop Next oferece autonomia + custo menor |
+| **vs WooCommerce** | Completo | WooCommerce tem custos ocultos (hosting, plugins, dev), Nuvemshop é zero manutenção |
+| **vs Loja Integrada** | Completo | Nuvemshop vence com plano gratuito ilimitado, 200+ apps, Nuvem Pago/Envio nativos |
+
+---
+
+## Como Rodar Localmente
 
 ```bash
 cd frontend
 
+# Instalar dependências
+npm install
+
+# Configurar variáveis de ambiente
+cp .env.example .env
+# Editar .env com suas API keys
+
+# Gerar Prisma client
+npx prisma generate
+
 # Desenvolvimento
 npm run dev
 
-# Build (static export)
+# Build
 npm run build
 
 # Produção
 npm start
 ```
 
----
-
-## Análises Competitivas
-
-Documentos de comparação detalhada entre Nuvemshop e concorrentes, usados como base de dados para os quick wins e argumentos de venda da ferramenta.
-
-| Arquivo | Status | Destaques |
-|---------|--------|-----------|
-| **vs Loja Integrada** | Completo | Nuvemshop vence com plano gratuito ilimitado, 200+ apps, Nuvem Pago/Envio nativos |
-| **vs Tray** | Completo | Nuvemshop tem plano gratuito (Tray não), WhatsApp nativo via Nuvem Chat, 99.9% uptime |
-| **vs VTEX** | Completo | VTEX é enterprise (R$1.500+/mês + devs), Nuvemshop Next oferece autonomia + custo menor |
-| **vs Shopify** | Completo | Nuvemshop elimina risco cambial (USD→BRL), Pix nativo, Nuvem Envio sem apps pagos |
-| **vs WooCommerce** | Completo | WooCommerce tem custos ocultos (hosting, plugins, dev), Nuvemshop é zero manutenção |
-| **vs Wix** | Placeholder | Pendente |
-
----
-
-## Arquitetura Planejada (Full Stack)
-
-O MVP frontend está implementado com lógica client-side. A arquitetura completa prevê:
+### Variáveis de Ambiente
 
 ```
-[Merchant insere URL]
-        │
-        ▼
-[N8N Webhook]
-        │
-        ├──→ Scraping (Cheerio/Puppeteer): plataforma, produtos, tech stack
-        ├──→ StoreLeads API: tráfego, apps instalados, rank
-        ├──→ Cálculo de custos: atual vs. Nuvemshop Next
-        └──→ LLM (Claude/OpenAI): relatório personalizado
-                │
-                ▼
-        [Relatório → Captura lead → Supabase]
-                │
-                ▼
-        [Nurturing automatizado via N8N + WhatsApp]
+ANTHROPIC_API_KEY=        # API key do Claude (Anthropic)
+DATABASE_URL=             # Connection string PostgreSQL
+RESEND_API_KEY=           # API key do Resend (emails)
+ADMIN_PASSWORD=           # Senha do admin dashboard
+ADMIN_JWT_SECRET=         # Secret para JWT
+NEXT_PUBLIC_APP_URL=      # URL pública do app
 ```
 
 ---
@@ -211,30 +292,18 @@ O MVP frontend está implementado com lógica client-side. A arquitetura complet
 
 ---
 
-## Integração com Ecossistema
-
-```
-Churn Radar ──→ Migration Intelligence Engine ──→ Nuvemshop Next (vendas)
-                         │
-                         └──→ Nurturing via IA (WhatsApp)
-```
-
-- **Churn Radar** detecta merchants em janela de migração e envia link da ferramenta
-- **Migration Engine** gera lead pré-qualificado com dados enriquecidos
-- **Agente WhatsApp** faz follow-up contextualizado com dados do relatório
-
----
-
-## Status Atual
+## Status
 
 - [x] Plano estratégico documentado
 - [x] Especificação de design (tokens, componentes, responsividade)
-- [x] Frontend implementado (Next.js + API routes)
-- [x] Scraping real de lojas com Cheerio (detecção de plataforma, tecnologias)
-- [x] Integração com Claude (Anthropic) para diagnóstico personalizado por IA
-- [x] Análises competitivas: Loja Integrada, Tray, VTEX, Shopify, WooCommerce
-- [ ] Análise competitiva: Wix
-- [ ] Integração StoreLeads API (enriquecimento de dados)
-- [ ] Integração Supabase (persistência de leads)
-- [ ] Fluxo de nurturing automatizado
-- [ ] Landing pages SEO por plataforma
+- [x] Frontend implementado (Next.js 16 + App Router)
+- [x] Scraping real de lojas com Cheerio (6 plataformas)
+- [x] Integração com Claude (Anthropic) para diagnóstico por IA
+- [x] Geração de PDF com relatório completo (jsPDF)
+- [x] Envio de email com Resend + tracking pixel
+- [x] Banco de dados PostgreSQL com Prisma 7
+- [x] Lead scoring automático (análise → PDF → email → abertura)
+- [x] Admin dashboard com KPIs, funil, leads e timeline
+- [x] Autenticação admin (JWT + cookie HTTP-only)
+- [x] Deploy em produção (Vercel)
+- [x] Análises competitivas: Shopify, Tray, VTEX, WooCommerce, Loja Integrada

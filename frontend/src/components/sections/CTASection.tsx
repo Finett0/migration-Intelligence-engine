@@ -36,6 +36,7 @@ export function CTASection({ result }: CTASectionProps) {
           monthlySavings: result.costs.monthlySavings,
           currentCost: result.costs.current.total,
           nuvemCost: result.costs.nuvemshop.total,
+          leadId: result.leadId,
         }),
       });
       if (!res.ok) {
@@ -81,6 +82,14 @@ export function CTASection({ result }: CTASectionProps) {
               onClick={async () => {
                 const { generateReportPDF } = await import("@/lib/generatePDF");
                 generateReportPDF(result);
+                // Track PDF download (fire-and-forget)
+                if (result.leadId) {
+                  fetch("/api/events/pdf-download", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ leadId: result.leadId }),
+                  }).catch(() => {});
+                }
               }}
               className="w-full cursor-pointer rounded-md border-2 border-white/40 bg-transparent px-7 py-3.5 text-[15px] font-bold text-white transition-all hover:border-white hover:bg-white/[.08] sm:w-auto sm:px-9 sm:py-4 sm:text-[17px]"
             >

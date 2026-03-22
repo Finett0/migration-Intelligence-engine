@@ -80,6 +80,7 @@ export interface AnalysisResult {
   quickWins: QuickWin[];
   scraped?: ScrapedData;
   aiInsight?: AIInsight;
+  leadId?: string | null;
 }
 
 export type AppStep = "hero" | "qualification" | "loading" | "report";

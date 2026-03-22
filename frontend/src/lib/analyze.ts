@@ -8,6 +8,7 @@ export function generateAnalysis(
   pains: Pain[],
   scraped?: ScrapedData,
   aiInsight?: AIInsight,
+  leadId?: string | null,
 ): AnalysisResult {
   const breakdown = getCostBreakdown(platform, revenue);
   const gmv = REVENUE_MID[revenue];
@@ -55,6 +56,7 @@ export function generateAnalysis(
     quickWins: getQuickWins(platform),
     scraped,
     aiInsight,
+    leadId: leadId ?? null,
   };
 }
 
@@ -72,8 +74,8 @@ export async function fetchAnalysis(
     });
 
     if (response.ok) {
-      const { scraped, aiInsight } = await response.json();
-      return generateAnalysis(url, platform, revenue, pains, scraped, aiInsight);
+      const { scraped, aiInsight, leadId } = await response.json();
+      return generateAnalysis(url, platform, revenue, pains, scraped, aiInsight, leadId);
     }
   } catch {
     // Fall back to client-side only

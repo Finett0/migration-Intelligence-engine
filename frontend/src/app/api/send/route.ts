@@ -12,12 +12,13 @@ interface SendRequestBody {
   monthlySavings: number;
   currentCost: number;
   nuvemCost: number;
+  leadId?: string;
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body: SendRequestBody = await req.json();
-    const { email, phone, url, platform, annualSavings, monthlySavings, currentCost, nuvemCost } = body;
+    const { email, phone, url, platform, annualSavings, monthlySavings, currentCost, nuvemCost, leadId: incomingLeadId } = body;
 
     if (!email || !phone) {
       return Response.json({ error: "Email e telefone são obrigatórios" }, { status: 400 });
@@ -157,11 +158,36 @@ export async function POST(req: NextRequest) {
 </body>
 </html>`;
 
+    // Track lead + email_sent event
+    let finalLeadId = incomingLeadId || null;
+    try {
+      const { upsertLead, trackEvent } = await import("@/lib/track");
+      const lead = await upsertLead({ url, email, phone, platform });
+      finalLeadId = lead.id;
+      await trackEvent(lead.id, "email_sent", {
+        email,
+        phone,
+        annualSavings,
+        monthlySavings,
+      });
+    } catch (e) {
+      console.error("Lead tracking error:", e);
+    }
+
+    // Inject tracking pixel if we have a leadId
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL;
+    let finalHtml = html;
+    if (finalLeadId && appUrl) {
+      const proto = appUrl.startsWith("http") ? "" : "https://";
+      const pixelUrl = `${proto}${appUrl}/api/events/email-open?lid=${finalLeadId}`;
+      finalHtml = html.replace("</body>", `<img src="${pixelUrl}" width="1" height="1" style="display:none" alt="" /></body>`);
+    }
+
     const { data, error } = await resend.emails.send({
       from: "ROI da Migração <onboarding@resend.dev>",
       to: [email],
       subject: `Você pode economizar R$ ${fmt(annualSavings)}/ano migrando para Nuvemshop`,
-      html,
+      html: finalHtml,
     });
 
     if (error) {

@@ -591,7 +591,29 @@ export async function POST(request: NextRequest) {
     // Generate AI insight
     const aiInsight = await generateAIInsight(scraped, platform, revenue, pains || [], url);
 
-    return NextResponse.json({ scraped, aiInsight });
+    // Track lead + analysis event (non-blocking)
+    let leadId: string | null = null;
+    try {
+      const { upsertLead, trackEvent } = await import("@/lib/track");
+      const lead = await upsertLead({
+        url,
+        platform,
+        revenue,
+        pains: pains || [],
+        storeTitle: scraped.title || null,
+      });
+      leadId = lead.id;
+      await trackEvent(lead.id, "analysis", {
+        scraped,
+        platform,
+        revenue,
+        pains,
+      });
+    } catch (e) {
+      console.error("Lead tracking error:", e);
+    }
+
+    return NextResponse.json({ scraped, aiInsight, leadId });
   } catch {
     return NextResponse.json({ error: "Analysis failed" }, { status: 500 });
   }
